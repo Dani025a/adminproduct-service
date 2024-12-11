@@ -1,0 +1,159 @@
+datasource db {
+  provider = "mysql"
+  url      = env("ADMIN_PRODUCT_SERVICE_DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Product {
+  id               Int               @id @default(autoincrement())
+  name             String
+  description      String
+  price            Decimal           @db.Decimal(10, 2)
+  stock            Int
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  discount         Discount?         @relation(fields: [discountId], references: [id])
+  discountId       Int?
+  brand            String
+  weight           Decimal           @db.Decimal(10, 2)
+  length           Decimal           @db.Decimal(10, 2)
+  width            Decimal           @db.Decimal(10, 2)
+  height           Decimal           @db.Decimal(10, 2)
+  status           Status
+  seoTitle         String
+  seoDescription   String
+  metaKeywords     String
+  subSubCategory   SubSubCategory?   @relation(fields: [subSubCategoryId], references: [id])
+  subSubCategoryId Int?
+  images           Image[]
+  reviews          Review[]
+  filters          ProductFilter[]
+}
+
+model Discount {
+  id          Int        @id @default(autoincrement())
+  percentage  Decimal    @db.Decimal(5, 2)
+  startDate   DateTime
+  endDate     DateTime
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  description String
+  products    Product[]
+}
+
+model MainCategory {
+  id        Int                                   @id @default(autoincrement())
+  name      String
+  createdAt DateTime                              @default(now())
+  updatedAt DateTime                              @updatedAt
+  subCategories SubCategory[]
+  categoryFilterOptionCategories CategoryFilterOptionCategory[]
+}
+
+model SubCategory {
+  id             Int                                   @id @default(autoincrement())
+  name           String
+  createdAt      DateTime                              @default(now())
+  updatedAt      DateTime                              @updatedAt
+  mainCategoryId Int
+  mainCategory   MainCategory                          @relation(fields: [mainCategoryId], references: [id])
+  subSubCategories SubSubCategory[]
+  categoryFilterOptionCategories CategoryFilterOptionCategory[]
+}
+
+model SubSubCategory {
+  id            Int                                   @id @default(autoincrement())
+  name          String
+  createdAt     DateTime                              @default(now())
+  updatedAt     DateTime                              @updatedAt
+  subCategoryId Int
+  subCategory   SubCategory                           @relation(fields: [subCategoryId], references: [id])
+  products      Product[]
+  categoryFilterOptionCategories CategoryFilterOptionCategory[]
+}
+
+model FilterOption {
+  id             Int                    @id @default(autoincrement())
+  name           String
+  type           FilterType             // This field is required
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
+  filterValues   FilterValue[]
+  categoryOptions CategoryFilterOption[]
+}
+
+model FilterValue {
+  id             Int                     @id @default(autoincrement())
+  value          String
+  createdAt      DateTime                @default(now())
+  updatedAt      DateTime                @updatedAt
+  filterOptionId Int
+  filterOption   FilterOption            @relation(fields: [filterOptionId], references: [id])
+  productFilters ProductFilter[]
+}
+
+model ProductFilter {
+  id             Int             @id @default(autoincrement())
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  filterValueId  Int
+  filterValue    FilterValue     @relation(fields: [filterValueId], references: [id])
+  productId      Int
+  product        Product         @relation(fields: [productId], references: [id])
+}
+
+model Image {
+  id         Int      @id @default(autoincrement())
+  url        String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  productId  Int
+  product    Product  @relation(fields: [productId], references: [id])
+}
+
+model Review {
+  id         Int      @id @default(autoincrement())
+  rating     Int
+  comment    String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  productId  Int
+  product    Product  @relation(fields: [productId], references: [id])
+}
+
+model CategoryFilterOption {
+  id                   Int                          @id @default(autoincrement())
+  createdAt            DateTime                     @default(now())
+  updatedAt            DateTime                     @updatedAt
+  filterOptionId       Int
+  filterOption         FilterOption                 @relation(fields: [filterOptionId], references: [id])
+  categoryRelations    CategoryFilterOptionCategory[]
+}
+
+model CategoryFilterOptionCategory {
+  id                       Int                       @id @default(autoincrement())
+  createdAt                DateTime                  @default(now())
+  updatedAt                DateTime                  @updatedAt
+  mainCategoryId           Int?
+  subCategoryId            Int?
+  subSubCategoryId         Int?
+  categoryFilterOptionId   Int
+  mainCategory             MainCategory?             @relation(fields: [mainCategoryId], references: [id])
+  subCategory              SubCategory?              @relation(fields: [subCategoryId], references: [id])
+  subSubCategory           SubSubCategory?           @relation(fields: [subSubCategoryId], references: [id])
+  categoryFilterOption     CategoryFilterOption      @relation(fields: [categoryFilterOptionId], references: [id])
+}
+
+enum Status {
+  active
+  inactive
+}
+
+enum FilterType {
+  checkbox
+  dropdown
+  slider
+}
