@@ -1,18 +1,11 @@
-// src/interfaces/productInterfaces.ts
+import { Status } from '@prisma/client';
 
-import { Status } from '@prisma/client'; // Ensure this import matches your Prisma setup
 
-/**
- * Represents a single filter applied to a product.
- */
 export interface Filter {
   filterOptionId: number;
   filterValueId: number;
 }
 
-/**
- * Represents the data required to create or update a product.
- */
 export interface ProductData {
   name: string;
   description: string;
@@ -33,9 +26,7 @@ export interface ProductData {
   filters?: Filter[];
 }
 
-/**
- * Represents the options available when fetching products.
- */
+
 export interface GetProductsOptions {
   mainCategoryId?: number;
   subCategoryId?: number;
@@ -48,9 +39,6 @@ export interface GetProductsOptions {
   sortOrder?: 'asc' | 'desc';
 }
 
-/**
- * Enumerates the types of filters available.
- */
 export enum FilterType {
   checkbox = 'checkbox',
   dropdown = 'dropdown',

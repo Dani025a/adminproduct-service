@@ -2,7 +2,7 @@ import { prisma } from '../models';
 import { uploadImage } from '../utils/googleCloudStorage';
 import { MESSAGES } from '../utils/messages';
 import { ProductData, GetProductsOptions, Filter } from '../interfaces/productInterfaces';
-
+import { publishProductAdded, publishProductDeleted, publishProductUpdated } from '../rabbitmq/productPublisher';
 
 export const createProductService = async (data: ProductData) => {
   const {
@@ -96,7 +96,9 @@ export const createProductService = async (data: ProductData) => {
           },
         },
       },
-    });
+    });    
+
+    await publishProductAdded(productWithFilters);
 
     return productWithFilters;
   } catch (error) {
@@ -104,7 +106,6 @@ export const createProductService = async (data: ProductData) => {
     throw new Error(MESSAGES.PRODUCT.CREATION_ERROR);
   }
 };
-
 const buildRangeCondition = (rangeField?: string, minRange?: number, maxRange?: number) => {
   if (!rangeField || (minRange === undefined && maxRange === undefined)) return undefined;
   return {
@@ -174,6 +175,7 @@ export const getProductsByCategoryAndFiltersService = async ({
       products.sort((a, b) => (sortOrder === 'asc' ? a.sales - b.sales : b.sales - a.sales));
     }
 
+    console.log(products)
     return products;
   } catch (error) {
     console.error('Detailed error in getProductsByCategoryAndFiltersService:', error);
@@ -206,6 +208,7 @@ export const getAllProductsService = async () => {
     throw new Error(MESSAGES.PRODUCT.FETCH_ERROR);
   }
 };
+
 
 
 export const getProductByIdService = async (id: number) => {
@@ -255,6 +258,7 @@ export const updateProductService = async (id: number, data: ProductData) => {
     images,
     filters,
   } = data;
+  
 
   const existingImageUrls = images
     ?.filter((image) => typeof image === 'string' && image.startsWith('http')) as string[] || [];
@@ -269,7 +273,31 @@ export const updateProductService = async (id: number, data: ProductData) => {
   const allImageUrls = [...existingImageUrls, ...uploadedImageUrls];
 
   try {
-    await prisma.product.update({
+    const existingImages = await prisma.image.findMany({
+      where: { productId: id },
+    });
+
+    const imagesToDelete = existingImages.filter(
+      (img) => !allImageUrls.includes(img.url)
+    );
+
+    await prisma.image.deleteMany({
+      where: { id: { in: imagesToDelete.map((img) => img.id) } },
+    });
+
+    const newImageUrls = allImageUrls.filter(
+      (url) => !existingImages.some((img) => img.url === url)
+    );
+
+    await prisma.image.createMany({
+      data: newImageUrls.map((url) => ({
+        productId: id,
+        url,
+      })),
+      skipDuplicates: true,
+    });
+
+    const updatedProduct = await prisma.product.update({
       where: { id },
       data: {
         name,
@@ -287,10 +315,6 @@ export const updateProductService = async (id: number, data: ProductData) => {
         metaKeywords,
         subSubCategoryId,
         discountId,
-        images: {
-          deleteMany: {}, 
-          create: allImageUrls.map((url) => ({ url })), 
-        },
       },
     });
 
@@ -334,6 +358,8 @@ export const updateProductService = async (id: number, data: ProductData) => {
       },
     });
 
+    await publishProductUpdated(updatedProductWithFilters);
+
     return updatedProductWithFilters;
   } catch (error) {
     console.error('Detailed error in updateProductService:', error);
@@ -342,8 +368,31 @@ export const updateProductService = async (id: number, data: ProductData) => {
 };
 
 
+
 export const deleteProductService = async (id: number) => {
   try {
+    const product = await prisma.product.findUnique({
+      where: { id },
+      include: {
+        discount: true,
+        reviews: true,
+        images: true,
+        filters: {
+          include: {
+            filterValue: {
+              include: {
+                filterOption: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!product) {
+      throw new Error('Product not found.');
+    }
+
     await prisma.productFilter.deleteMany({
       where: { productId: id },
     });
@@ -352,8 +401,33 @@ export const deleteProductService = async (id: number) => {
     await prisma.image.deleteMany({ where: { productId: id } });
 
     await prisma.product.delete({ where: { id } });
+
+    await publishProductDeleted({ id, name: product.name });
+
+    return { message: 'Product deleted successfully.' };
   } catch (error) {
     console.error('Detailed error in deleteProductService:', error);
     throw new Error(MESSAGES.PRODUCT.ERROR_DELETING_PRODUCT);
+  }
+};
+
+
+export const updateStock = async (productId: number, newStock: number) => {
+  if (typeof productId !== 'number' || typeof newStock !== 'number') {
+    throw new Error('Product ID and new stock must be numbers');
+  }
+
+  try {
+    const updatedProduct = await prisma.product.update({
+      where: { id: productId },
+      data: { stock: newStock },
+    });
+
+    console.log(`Stock updated for product ${productId}: ${newStock}`);
+
+    return updatedProduct;
+  } catch (error) {
+    console.error(`Error updating stock for product ${productId}:`, error);
+    throw new Error('Failed to update product stock');
   }
 };

@@ -1,15 +1,21 @@
+
 import { getChannel } from './connection';
 
-export async function categoryPublisher(queue: string, message: any) {
-  const channel = getChannel();
 
-  if (!channel) {
-    console.error('RabbitMQ channel is not available');
-    return;
+export async function categoryPublisher(queueName: string, message: any) {
+  try {
+    const channel = getChannel();
+    if (!channel) {
+      throw new Error('RabbitMQ channel is not initialized.');
+    }
+
+    await channel.assertQueue(queueName, { durable: true });
+    channel.sendToQueue(queueName, Buffer.from(JSON.stringify(message)), {
+      persistent: true,
+    });
+
+    console.log(`Message sent to queue "${queueName}":`, message);
+  } catch (error) {
+    console.error('Error publishing message to RabbitMQ:', error);
   }
-
-  const msg = JSON.stringify(message);
-  await channel.assertQueue(queue, { durable: true });
-  channel.sendToQueue(queue, Buffer.from(msg));
-  console.log(`Message sent to queue ${queue}:`, message);
 }

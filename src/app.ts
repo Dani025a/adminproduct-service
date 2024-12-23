@@ -5,6 +5,8 @@ import productViewRoutes from './routes/productViewRoute';
 import categoryRoutes from './routes/categoryRoute';
 import cors from 'cors';
 import filterRoutes from './routes/filterRoute'
+import { connectRabbitMQ } from './rabbitmq/connection';
+import { consumeStockUpdates } from './rabbitmq/productConsumer';
 dotenv.config();
 
 const app = express();
@@ -19,6 +21,15 @@ app.use(
   );
 
 app.use(express.json());
+
+(async () => {
+  try {
+    await connectRabbitMQ();
+    consumeStockUpdates();
+  } catch (error) {
+    console.error('Failed to initialize service:', error);
+  }
+})();
 
 
 app.use('/api', productRoutes);

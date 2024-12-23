@@ -9,7 +9,11 @@ class CategoryController {
     const { name } = req.body;
     try {
       const mainCategory = await prisma.mainCategory.create({ data: { name } });
-      await categoryPublisher('category', { action: 'create', type: 'mainCategory', data: mainCategory });
+      await categoryPublisher('category', { 
+        action: 'create', 
+        type: 'mainCategory', 
+        data: mainCategory 
+      });
       res.status(201).json(mainCategory);
     } catch (error) {
       res.status(500).json({ error: MESSAGES.CATEGORY.MAIN_CATEGORY_CREATION_ERROR });
@@ -24,7 +28,11 @@ class CategoryController {
         where: { id: parseInt(id) },
         data: { name },
       });
-      await categoryPublisher('category', { action: 'update', type: 'mainCategory', data: mainCategory });
+      await categoryPublisher('category', { 
+        action: 'update', 
+        type: 'mainCategory', 
+        data: mainCategory 
+      });
       res.status(200).json(mainCategory);
     } catch (error) {
       res.status(500).json({ error: MESSAGES.CATEGORY.MAIN_CATEGORY_UPDATE_ERROR });
@@ -65,10 +73,10 @@ class CategoryController {
           where: { id: mainCategoryId },
         });
 
-        await categoryPublisher('category', {
-          action: 'delete',
-          type: 'mainCategory',
-          data: mainCategory,
+        await categoryPublisher('category', { 
+          action: 'delete', 
+          type: 'mainCategory', 
+          data: mainCategory 
         });
 
         res.status(200).json(mainCategory);
@@ -105,7 +113,11 @@ class CategoryController {
           mainCategory: { connect: { id: mainCategoryId } },
         },
       });
-      await categoryPublisher('category', { action: 'create', type: 'subCategory', data: subCategory });
+      await categoryPublisher('category', { 
+        action: 'create', 
+        type: 'subCategory', 
+        data: subCategory
+      });
       res.status(201).json(subCategory);
     } catch (error) {
       res.status(500).json({ error: MESSAGES.CATEGORY.SUB_CATEGORY_CREATION_ERROR });
@@ -125,6 +137,12 @@ class CategoryController {
         include: {
           mainCategory: true,
         },
+      });
+
+      await categoryPublisher('category', { 
+        action: 'update', 
+        type: 'subCategory', 
+        data: subCategory
       });
       res.status(200).json(subCategory);
     } catch (error) {
@@ -195,7 +213,11 @@ class CategoryController {
           subCategory: { connect: { id: subCategoryId } },
         },
       });
-      await categoryPublisher('category', { action: 'create', type: 'subSubCategory', data: subSubCategory });
+      await categoryPublisher('category', { 
+        action: 'create', 
+        type: 'subSubCategory', 
+        data: subSubCategory
+      });
       res.status(201).json(subSubCategory);
     } catch (error) {
       res.status(500).json({ error: MESSAGES.CATEGORY.SUB_SUB_CATEGORY_CREATION_ERROR });
@@ -221,7 +243,11 @@ class CategoryController {
         },
       });
 
-      console.log(subSubCategory)
+      await categoryPublisher('category', { 
+        action: 'update', 
+        type: 'subSubCategory', 
+        data: subSubCategory
+      });
 
       res.status(200).json(subSubCategory);
     } catch (error) {
@@ -233,7 +259,11 @@ class CategoryController {
     const { id } = req.params;
     try {
       const subSubCategory = await prisma.subSubCategory.delete({ where: { id: parseInt(id) } });
-      await categoryPublisher('category', { action: 'delete', type: 'subSubCategory', data: subSubCategory });
+      await categoryPublisher('category', { 
+        action: 'delete', 
+        type: 'subSubCategory', 
+        data: subSubCategory
+      });
       res.status(200).json(subSubCategory);
     } catch (error) {
       res.status(500).json({ error: MESSAGES.CATEGORY.SUB_SUB_CATEGORY_DELETE_ERROR });
