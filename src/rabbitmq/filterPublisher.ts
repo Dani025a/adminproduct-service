@@ -22,8 +22,6 @@ export async function publishEvent(eventType: EventType, data: any) {
   try {
     const channel = getChannel();
 
-    console.log("Test")
-
     const message: EventMessage = {
       eventType,
       timestamp: new Date().toISOString(),
